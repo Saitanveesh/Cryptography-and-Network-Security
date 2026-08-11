@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>CNS Labs</title>
+<style>
+body{font-family:system-ui,sans-serif;max-width:980px;margin:0 auto;padding:24px;background:#0d1117;color:#e6edf3;line-height:1.5}h1,h2{margin-bottom:.4rem}.muted{color:#9da7b3}.tabs{display:flex;gap:8px;flex-wrap:wrap;margin:20px 0}.tabs button,.btn{border:1px solid #30363d;background:#21262d;color:#e6edf3;padding:9px 13px;border-radius:9px;cursor:pointer}.tabs button.active,.btn.primary{background:#2f81f7}.panel{display:none}.panel.active{display:block}.card{border:1px solid #30363d;background:#161b22;border-radius:12px;padding:16px;margin:14px 0}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px}textarea,input{width:100%;box-sizing:border-box;background:#0d1117;color:#e6edf3;border:1px solid #30363d;border-radius:8px;padding:10px;font:inherit}textarea{min-height:95px}.matrix{display:grid;grid-template-columns:repeat(5,48px);gap:6px}.cell,.pair{display:inline-grid;place-items:center;border:1px solid #30363d;background:#21262d;border-radius:8px;padding:9px;font-family:monospace;font-weight:700}.pairs{display:flex;gap:7px;flex-wrap:wrap}.mono{font-family:monospace;white-space:pre-wrap}.trace{overflow:auto}table{width:100%;border-collapse:collapse}th,td{padding:7px;border-bottom:1px solid #30363d;text-align:left}code{background:#21262d;padding:2px 5px;border-radius:5px}
+</style>
+</head>
+<body>
+<h1>CNS Labs</h1>
+<p class="muted">I made these small labs so I can test the idea right after reading the notes. Each one already has an example loaded, so the first step is just to click the main button and see what changes.</p>
+<div class="tabs">
+<button class="active" data-tab="caesar">Caesar</button>
+<button data-tab="freq">Frequency analysis</button>
+<button data-tab="playfair">Playfair prep</button>
+</div>
+
+<section id="caesar" class="panel active">
+<div class="card"><h2>Caesar cipher</h2><p>Start with <code>P = ATTACK AT DAWN</code> and <code>K = 3</code>. Click Encrypt. Then change only <code>K</code> and watch the output move.</p></div>
+<div class="grid">
+<div class="card"><label>Plaintext P</label><textarea id="cP">ATTACK AT DAWN</textarea><label>Key K</label><input id="cK" type="number" min="0" max="25" value="3"><p><button class="btn primary" id="enc">Encrypt</button></p></div>
+<div class="card"><h2>Result</h2><div id="cOut" class="mono">Click Encrypt.</div></div>
+</div>
+<div class="card trace"><h2>Letter by letter</h2><table><thead><tr><th>P</th><th>Value</th><th>Calculation</th><th>C</th></tr></thead><tbody id="cTrace"></tbody></table></div>
+<div class="card"><h2>Attacker side</h2><p>I only give the Attacker <code>C</code>. For Caesar the easiest move is to try every possible <code>K</code>.</p><textarea id="attackC">KHOOR</textarea><p><button class="btn primary" id="brute">Try every K</button></p><div class="trace"><table><thead><tr><th>K</th><th>Candidate P</th></tr></thead><tbody id="bruteRows"></tbody></table></div></div>
+</section>
+
+<section id="freq" class="panel">
+<div class="card"><h2>Frequency analysis</h2><p>Click Analyze on the sample first. After that, paste a longer ciphertext and compare which letters appear most often.</p></div>
+<div class="card"><textarea id="fText">THIS IS A SIMPLE ENGLISH SAMPLE. THIS SAMPLE REPEATS COMMON LETTERS SO THE FREQUENCIES ARE EASIER TO SEE.</textarea><p><button class="btn primary" id="analyze">Analyze</button></p><div id="fSummary"></div></div>
+<div class="card trace"><table><thead><tr><th>Letter</th><th>Count</th><th>%</th></tr></thead><tbody id="fRows"></tbody></table></div>
+</section>
+
+<section id="playfair" class="panel">
+<div class="card"><h2>Playfair preparation</h2><p>This stops before encryption. I am only building the 5×5 keyword matrix and preparing plaintext into digraphs.</p><p class="muted">I/J share one position. Normal filler = X. If X would create XX, I use Q.</p></div>
+<div class="grid">
+<div class="card"><label>Keyword</label><input id="pfKey" value="MONARCHY"><p><button class="btn primary" id="matrixBtn">Build matrix</button></p><p>Cleaned keyword: <span id="cleanKey" class="mono"></span></p><div id="matrix" class="matrix"></div></div>
+<div class="card"><label>Plaintext P</label><textarea id="pfText">BALLOON</textarea><p><button class="btn primary" id="prepBtn">Prepare digraphs</button></p><p>Normalized P: <span id="normP" class="mono"></span></p><div id="pairs" class="pairs"></div></div>
+</div>
+<div class="card"><h2>Why each pair happened</h2><div id="pfTrace"></div></div>
+<div class="card"><strong>Stop point:</strong> the next class step is how each digraph is encrypted using its positions in the matrix.</div>
+</section>
+
+<script>
+const A='ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+const tabs=document.querySelectorAll('[data-tab]');
+tabs.forEach(b=>b.onclick=()=>{tabs.forEach(x=>x.classList.remove('active'));document.querySelectorAll('.panel').forEach(x=>x.classList.remove('active'));b.classList.add('active');document.getElementById(b.dataset.tab).classList.add('active')});
+function key(v){v=parseInt(v)||0;return ((v%26)+26)%26}
+function shift(text,k,dec=false){return [...text].map(ch=>{let u=ch.toUpperCase(),i=A.indexOf(u);if(i<0)return ch;let n=(i+(dec?-k:k)+26)%26;return A[n]}).join('')}
+enc.onclick=()=>{let p=cP.value.toUpperCase(),k=key(cK.value),out='',rows='';for(const ch of p){let i=A.indexOf(ch);if(i<0){out+=ch;continue}let n=(i+k)%26,c=A[n];out+=c;rows+=`<tr><td>${ch}</td><td>${i}</td><td>(${i} + ${k}) mod 26 = ${n}</td><td>${c}</td></tr>`}cOut.textContent=`C = ${out}`;cTrace.innerHTML=rows};
+brute.onclick=()=>{let c=attackC.value.toUpperCase();bruteRows.innerHTML=Array.from({length:26},(_,k)=>`<tr><td>${k}</td><td class="mono">${shift(c,k,true)}</td></tr>`).join('')};
+analyze.onclick=()=>{let counts=Object.fromEntries([...A].map(x=>[x,0])),total=0;for(const ch of fText.value.toUpperCase()){if(counts[ch]!==undefined){counts[ch]++;total++}}let rows=Object.entries(counts).sort((a,b)=>b[1]-a[1]);fSummary.textContent=total?`Most frequent here: ${rows[0][0]} (${(rows[0][1]*100/total).toFixed(2)}%)`:'No letters found.';fRows.innerHTML=rows.map(([l,c])=>`<tr><td>${l}</td><td>${c}</td><td>${total?(c*100/total).toFixed(2):0}%</td></tr>`).join('')};
+function clean(s){return [...s.toUpperCase().replace(/J/g,'I').replace(/[^A-Z]/g,'')].filter((x,i,a)=>a.indexOf(x)===i).join('')}
+function build(){let k=clean(pfKey.value),seq=clean(k+A.replace('J',''));cleanKey.textContent=k;matrix.innerHTML=[...seq].slice(0,25).map(x=>`<div class="cell">${x}</div>`).join('')}
+function prep(){let s=pfText.value.toUpperCase().replace(/J/g,'I').replace(/[^A-Z]/g,''),i=0,res=[],trace=[];normP.textContent=s;while(i<s.length){let a=s[i],b=s[i+1];if(!b){let f=a==='X'?'Q':'X';res.push(a+f);trace.push(`${a} was left alone, so I added ${f}.`);i++;continue}if(a===b){let f=a==='X'?'Q':'X';res.push(a+f);trace.push(`${a}${b} repeats the same letter, so I made ${a}${f} and kept the second ${b} for the next pair.`);i++;continue}res.push(a+b);trace.push(`${a}${b} already has two different letters, so I kept it.`);i+=2}pairs.innerHTML=res.map(x=>`<span class="pair">${x}</span>`).join('');pfTrace.innerHTML=trace.map(x=>`<p>${x}</p>`).join('')}
+matrixBtn.onclick=build;prepBtn.onclick=prep;build();prep();enc.click();analyze.click();
+</script>
+</body>
+</html>
