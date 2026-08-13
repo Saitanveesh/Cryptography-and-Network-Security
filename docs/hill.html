@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Hill Cipher Lab</title>
+<style>
+body{font-family:system-ui,sans-serif;max-width:1000px;margin:auto;padding:24px;background:#0d1117;color:#e6edf3;line-height:1.5}.card{border:1px solid #30363d;background:#161b22;border-radius:12px;padding:16px;margin:14px 0}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(270px,1fr));gap:14px}input,textarea{width:100%;box-sizing:border-box;background:#0d1117;color:#e6edf3;border:1px solid #30363d;border-radius:8px;padding:10px;font:inherit}button{border:1px solid #30363d;background:#2f81f7;color:white;padding:9px 13px;border-radius:9px;cursor:pointer}.kgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px;max-width:260px}.mono,pre{font-family:monospace;white-space:pre-wrap}.muted{color:#9da7b3}.good{color:#7ee787}.bad{color:#ff7b72}table{width:100%;border-collapse:collapse}th,td{padding:7px;border-bottom:1px solid #30363d;text-align:left}
+</style>
+</head>
+<body>
+<h1>Hill Cipher Lab</h1>
+<p class="muted">The sample is the same one from my notes. I use A=0 ... Z=25 and column vectors throughout.</p>
+<div class="card"><pre>C = K P mod 26
+P = K^-1 C mod 26</pre><p>Start with <strong>HELP</strong> and the key matrix already loaded. First check the key, then run the forward calculation.</p></div>
+<div class="grid">
+<div class="card"><h2>1. Key matrix K</h2><div class="kgrid"><input id="a" value="3"><input id="b" value="3"><input id="c" value="2"><input id="d" value="5"></div><p><button id="check">Check K and find K^-1</button></p><div id="inv" class="mono"></div></div>
+<div class="card"><h2>2. Forward calculation</h2><label>Plaintext P</label><textarea id="p">HELP</textarea><p><button id="fwd">Run forward</button></p><div id="fout" class="mono"></div></div>
+</div>
+<div class="card"><h2>Block calculation</h2><table><thead><tr><th>Input block</th><th>Vector</th><th>Matrix result</th><th>mod 26</th><th>Letters</th></tr></thead><tbody id="rows"></tbody></table></div>
+<div class="card"><h2>3. Reverse check</h2><p>I use the inverse matrix from step 1. If the determinant has no inverse mod 26, I stop instead of pretending the key is valid.</p><label>Ciphertext C</label><textarea id="ct">HIAT</textarea><p><button id="rev">Run reverse</button></p><div id="rout" class="mono"></div></div>
+<div class="card"><h2>Quick test</h2><p>Try changing the key to <code>[[2,4],[2,6]]</code>. Its determinant is 4 and gcd(4,26)=2, so the lab should reject it before any reverse calculation.</p></div>
+<script>
+const AZ='ABCDEFGHIJKLMNOPQRSTUVWXYZ';let kinv=null;function mod(n){return((n%26)+26)%26}function gcd(a,b){a=Math.abs(a);b=Math.abs(b);while(b){[a,b]=[b,a%b]}return a}function minv(x){x=mod(x);for(let i=1;i<26;i++)if(mod(x*i)===1)return i;return null}function K(){return [[+a.value,+b.value],[+c.value,+d.value]]}function pairVec(s){return [AZ.indexOf(s[0]),AZ.indexOf(s[1])]}function mul(m,v){return [m[0][0]*v[0]+m[0][1]*v[1],m[1][0]*v[0]+m[1][1]*v[1]]}function letters(v){return AZ[mod(v[0])]+AZ[mod(v[1])]}function validText(s){return s.toUpperCase().replace(/[^A-Z]/g,'')}
+check.onclick=()=>{let k=K(),det=k[0][0]*k[1][1]-k[0][1]*k[1][0],g=gcd(det,26),di=minv(det);if(g!==1||di===null){kinv=null;inv.innerHTML=`det(K) = ${det}<br>gcd(${det},26) = ${g}<br><span class="bad">No inverse modulo 26. Stop here.</span>`;return}kinv=[[mod(di*k[1][1]),mod(di*(-k[0][1]))],[mod(di*(-k[1][0])),mod(di*k[0][0])]];inv.innerHTML=`det(K) = ${det}<br>det(K)^-1 mod 26 = ${di}<br><span class="good">K^-1 = [${kinv[0][0]} ${kinv[0][1]}] [${kinv[1][0]} ${kinv[1][1]}]</span>`};
+fwd.onclick=()=>{let s=validText(p.value);if(s.length%2)s+='X';let k=K(),out='',tr=[];for(let i=0;i<s.length;i+=2){let block=s.slice(i,i+2),v=pairVec(block),raw=mul(k,v),mv=[mod(raw[0]),mod(raw[1])],ls=letters(mv);out+=ls;tr.push(`<tr><td>${block}</td><td>[${v[0]}, ${v[1]}]^T</td><td>[${raw[0]}, ${raw[1]}]^T</td><td>[${mv[0]}, ${mv[1]}]^T</td><td>${ls}</td></tr>`)}fout.textContent='C = '+out;ct.value=out;rows.innerHTML=tr.join('')};
+rev.onclick=()=>{check.click();if(!kinv){rout.textContent='K has no inverse mod 26.';return}let s=validText(ct.value);if(s.length%2){rout.textContent='Ciphertext needs complete 2-letter blocks.';return}let out='';for(let i=0;i<s.length;i+=2){let v=pairVec(s.slice(i,i+2)),r=mul(kinv,v);out+=letters(r)}rout.textContent='P = '+out};
+check.click();fwd.click();
+</script>
+</body></html>

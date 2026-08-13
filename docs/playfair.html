@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Playfair Lab</title>
+<style>
+body{font-family:system-ui,sans-serif;max-width:1000px;margin:auto;padding:24px;background:#0d1117;color:#e6edf3;line-height:1.5}.card{border:1px solid #30363d;background:#161b22;border-radius:12px;padding:16px;margin:14px 0}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px}input,textarea{width:100%;box-sizing:border-box;background:#0d1117;color:#e6edf3;border:1px solid #30363d;border-radius:8px;padding:10px;font:inherit}button{border:1px solid #30363d;background:#2f81f7;color:white;padding:9px 13px;border-radius:9px;cursor:pointer}.matrix{display:grid;grid-template-columns:repeat(5,48px);gap:6px}.cell,.pair{display:inline-grid;place-items:center;border:1px solid #30363d;background:#21262d;border-radius:8px;padding:9px;font-family:monospace;font-weight:700}.pairs{display:flex;gap:7px;flex-wrap:wrap}.mono{font-family:monospace}.muted{color:#9da7b3}table{width:100%;border-collapse:collapse}th,td{padding:7px;border-bottom:1px solid #30363d;text-align:left}
+</style>
+</head>
+<body>
+<h1>Playfair Lab</h1>
+<p class="muted">I use the same I/J convention and filler rules as the notes. Start with the example already loaded, then change one thing at a time.</p>
+<div class="card"><strong>Rule card</strong><pre>Forward: ROW → RIGHT | COLUMN → DOWN | RECTANGLE → SWAP COLUMNS
+Reverse: ROW → LEFT  | COLUMN → UP   | RECTANGLE → SWAP COLUMNS</pre></div>
+<div class="grid">
+<div class="card"><h2>1. Build the matrix</h2><label>Keyword</label><input id="key" value="MONARCHY"><p><button id="build">Build matrix</button></p><div id="matrix" class="matrix"></div></div>
+<div class="card"><h2>2. Prepare P</h2><label>Plaintext P</label><textarea id="plain">INSTRUMENTS</textarea><p><button id="prep">Prepare pairs</button></p><p>Normalized: <span id="norm" class="mono"></span></p><div id="pairs" class="pairs"></div></div>
+</div>
+<div class="card"><h2>3. Forward through the matrix</h2><p>Click once and I show which of the three rules each pair used.</p><button id="forward">Run forward</button><p class="mono" id="out"></p><table><thead><tr><th>Pair</th><th>Rule</th><th>Result</th></tr></thead><tbody id="trace"></tbody></table></div>
+<div class="card"><h2>4. Reverse check</h2><label>Pairs to reverse</label><textarea id="cipher">GATLMZCLRQXA</textarea><p><button id="reverse">Run reverse</button></p><p class="mono" id="revOut"></p><table><thead><tr><th>Pair</th><th>Rule</th><th>Result</th></tr></thead><tbody id="revTrace"></tbody></table></div>
+<script>
+const AZ='ABCDEFGHIKLMNOPQRSTUVWXYZ';let mat=[],pos={};
+function cleanKey(s){let seen=new Set(),o='';for(let ch of s.toUpperCase().replace(/J/g,'I').replace(/[^A-Z]/g,'')){if(!seen.has(ch)){seen.add(ch);o+=ch}}return o}
+function makeMatrix(){let seq=cleanKey(key.value+AZ);mat=[];pos={};for(let r=0;r<5;r++){mat[r]=[];for(let c=0;c<5;c++){let ch=seq[r*5+c];mat[r][c]=ch;pos[ch]=[r,c]}}matrix.innerHTML=seq.split('').map(x=>`<span class="cell">${x}</span>`).join('')}
+function prepare(s){s=s.toUpperCase().replace(/J/g,'I').replace(/[^A-Z]/g,'');norm.textContent=s;let r=[],i=0;while(i<s.length){let a=s[i],b=s[i+1];if(!b){r.push(a+(a==='X'?'Q':'X'));i++;continue}if(a===b){r.push(a+(a==='X'?'Q':'X'));i++;continue}r.push(a+b);i+=2}return r}
+function move(pair,dir){let a=pair[0],b=pair[1],[ra,ca]=pos[a],[rb,cb]=pos[b],rule;if(ra===rb){rule='same row';ca=(ca+dir+5)%5;cb=(cb+dir+5)%5}else if(ca===cb){rule='same column';ra=(ra+dir+5)%5;rb=(rb+dir+5)%5}else{rule='rectangle';[ca,cb]=[cb,ca]}return {pair:mat[ra][ca]+mat[rb][cb],rule}}
+build.onclick=()=>{makeMatrix()};prep.onclick=()=>{makeMatrix();let p=prepare(plain.value);pairs.innerHTML=p.map(x=>`<span class="pair">${x}</span>`).join('')};
+forward.onclick=()=>{makeMatrix();let ps=prepare(plain.value),rows=[],all='';for(let p of ps){let x=move(p,1);all+=x.pair;rows.push(`<tr><td>${p}</td><td>${x.rule}</td><td>${x.pair}</td></tr>`)}out.textContent='C = '+all;cipher.value=all;trace.innerHTML=rows.join('')};
+reverse.onclick=()=>{makeMatrix();let s=cipher.value.toUpperCase().replace(/J/g,'I').replace(/[^A-Z]/g,''),rows=[],all='';for(let i=0;i+1<s.length;i+=2){let p=s.slice(i,i+2),x=move(p,-1);all+=x.pair;rows.push(`<tr><td>${p}</td><td>${x.rule}</td><td>${x.pair}</td></tr>`)}revOut.textContent='Prepared P = '+all;revTrace.innerHTML=rows.join('')};
+makeMatrix();prep.click();forward.click();
+</script>
+</body></html>
